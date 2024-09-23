@@ -182,7 +182,7 @@ const DynamicECharts: React.FC = () => {
         },
       },
       yAxis: {
-        show: false
+        show: false,
         // type: 'value',
         // name: 'Value',
         // min: 0,
@@ -270,23 +270,29 @@ const DynamicECharts: React.FC = () => {
 
   return (
     <div>
-      <button onClick={handleFileSelect}>Select JSON File</button>
-      {staticLines ? (
-        <ReactECharts
-          option={getOption()}
-          style={{ height: '800px', width: '1600px' }}
-          onEvents={{
-            click: (params: any) => {
-              if (params.componentType === 'series') {
-                selectLine(params.seriesName); // Call selectLine on click
-              }
-            },
-          }}
-        />
-      ) : (
-        <p>Please select a JSON file to load the chart.</p>
-      )}
-
+      {/* Take input for static lines */}
+      <div>
+        <button onClick={handleFileSelect}>Select JSON File</button>
+        {staticLines ? (
+          <ReactECharts
+            option={getOption()}
+            style={{ height: '800px', width: '1600px' }}
+            onEvents={{
+              click: (params: any) => {
+                if (params.componentType === 'series') {
+                  selectLine(params.seriesName); // Call selectLine on click
+                }
+              },
+            }}
+          />
+        ) : (
+          <p>Please select a JSON file to load the chart.</p>
+        )}
+      </div>
+     {/* add trace */}
+     <div>
+        
+     </div>
       <label htmlFor="speedControl">Movement Speed:</label>
       <input
         type="range"
