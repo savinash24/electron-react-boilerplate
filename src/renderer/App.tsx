@@ -5,7 +5,6 @@ import Chart from './Chart';
 function Hello() {
   return (
     <div>
-      HI
       <Chart />
     </div>
   );

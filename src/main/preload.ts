@@ -27,3 +27,7 @@ const electronHandler = {
 contextBridge.exposeInMainWorld('electron', electronHandler);
 
 export type ElectronHandler = typeof electronHandler;
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  selectFile: () => ipcRenderer.invoke('select-file')
+});

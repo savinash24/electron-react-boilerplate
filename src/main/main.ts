@@ -9,11 +9,12 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
+const fs = require('fs');
 
 class AppUpdater {
   constructor() {
@@ -122,6 +123,25 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// // Handle file read request from React
+// ipcMain.handle('read-file', (event, filePath) => {
+//   return fs.readFileSync(filePath, 'utf8'); // Reads the file synchronously and returns its content
+// });
+// Handle file selection and read
+ipcMain.handle('select-file', async () => {
+  const { filePaths } = await dialog.showOpenDialog({
+    properties: ['openFile'],
+    filters: [{ name: 'JSON Files', extensions: ['json'] }]
+  });
+
+  if (filePaths && filePaths[0]) {
+    const fileData = fs.readFileSync(filePaths[0], 'utf8');
+    return fileData;
+  }
+
+  return null;
 });
 
 app
