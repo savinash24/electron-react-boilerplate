@@ -1,22 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
-// interface any {
-//   name: string;
-//   value: number;
-// }
+import { EChartOption } from 'echarts';
+
 const DynamicECharts: React.FC = () => {
+  const chartRef = useRef<ReactECharts | null>(null);
   const [dynamicLines, setDynamicLines] = useState<any[]>([]);
   const [staticLines, setStaticLines] = useState<any[]>([]);
-  const [moveAmount, setMoveAmount] = useState(100000); // Default speed: 1 second
+  const [moveAmount, setMoveAmount] = useState(100000);
   const [speedFactor, setSpeedFactor] = useState(2);
+  const [selectedLine, setSelectedLine] = useState<string | null>(null); // New state to track the selected line
 
-  //   const [fileData, setFileData] = useState<any[]>([]);
-
-  // Function to handle file selection and reading
   const handleFileSelect = async () => {
     try {
-      // Simulate file selection using an input element
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
       fileInput.accept = '.json';
@@ -27,7 +23,6 @@ const DynamicECharts: React.FC = () => {
           reader.onload = (e) => {
             const result = e.target?.result as string;
             const parsedData: any[] = JSON.parse(result);
-            // setFileData(parsedData);
             setStaticLines(parsedData);
             console.log(parsedData);
           };
@@ -40,134 +35,57 @@ const DynamicECharts: React.FC = () => {
     }
   };
 
-  // Generate static data
-  //   const generateData = () => {
-  //     const data = [];
-  //     const startDate = new Date('2024-09-18T00:00:00Z');
-  //     const numDays = 5;
-  //     const numParameters = 100;
-
-  //     for (let day = 0; day < numDays; day++) {
-  //       for (let i = 0; i < numParameters; i++) {
-  //         const timestamp = new Date(
-  //           startDate.getTime() + day * 16 * 60 * 60 * 1000 + i * 60 * 1000,
-  //         );
-  //         const value = Math.floor(Math.random() * 100);
-  //         data.push([timestamp.toISOString(), value]);
-  //       }
-  //     }
-  //     return data;
-  //   };
-
-  //   // Generate dynamic line data
-  //   const lineGenData = (n: number) => {
-  //     const data = [];
-  //     const startDate = new Date('2024-09-18T00:00:00Z');
-  //     startDate.setDate(startDate.getDate() + n - 1);
-  //     const numParameters = 100;
-
-  //     for (let i = 0; i < numParameters; i++) {
-  //       const timestamp = new Date(startDate.getTime() + i * 60 * 1000);
-  //       const value = Math.floor(Math.random() * 100);
-  //       data.push([timestamp.toISOString(), value]);
-  //     }
-  //     return data;
-  //   };
-
   useEffect(() => {
-    // const staticLines: any = [
-    //   {
-    //     name: 'Parameter 1',
-    //     type: 'line',
-    //     data: generateData(),
-    //     lineStyle: { color: 'red', width: 2 },
-    //   },
-    //   {
-    //     name: 'Parameter 2',
-    //     type: 'line',
-    //     data: generateData(),
-    //     lineStyle: { color: 'yellow', width: 2 },
-    //   },
-    // ];
-    // console.log(staticLines);
-    // const dynamicLinesInit: any = [
-    //   {
-    //     name: 'Dynamic Line 1',
-    //     type: 'line',
-    //     data: lineGenData(1),
-    //     lineStyle: { type: 'dotted', color: 'green', width: 2 },
-    //     selected: false,
-    //   },
-    //   {
-    //     name: 'Dynamic Line 1-1',
-    //     type: 'line',
-    //     data: lineGenData(1),
-    //     lineStyle: { type: 'dotted', color: 'blue', width: 2 },
-    //     selected: false,
-    //   },
-    //   {
-    //     name: 'Dynamic Line 2',
-    //     type: 'line',
-    //     data: lineGenData(2),
-    //     lineStyle: { type: 'dotted', color: 'orange', width: 2 },
-    //     selected: false,
-    //   },
-    //   {
-    //     name: 'Dynamic Line 3',
-    //     type: 'line',
-    //     data: lineGenData(3),
-    //     lineStyle: { type: 'dotted', color: 'pink', width: 2 },
-    //     selected: false,
-    //   },
-    // ];
-    // setDynamicLines(dynamicLinesInit);
-    // setStaticLines(fileData);
+    const dynamicLinesInit: any = [
+      {
+        name: 'Dynamic Line 1',
+        type: 'line',
+        data: [
+          ["2024-09-12T04:51:20.000Z", 24.2],
+          ["2024-09-12T05:51:43.000Z", 22.2],
+          ["2024-09-12T06:51:44.000Z", 26.2],
+        ],
+        lineStyle: { type: 'dotted', color: 'green', width: 2 },
+        selected: false,
+      },
+    ];
+    setDynamicLines(dynamicLinesInit);
   }, []);
 
-  const getOption = () => {
-    function normalizeData(data: number[][]): number[][] {
-      const arrayOfValues: any = data.map((point) => point[1]);
-      console.log({ nor: data, arrayOfValues });
+  const getOption = (): EChartOption => {
+    const normalizeData = (data: number[][]): number[][] => {
+      const arrayOfValues = data.map(point => point[1]);
       const max = Math.max(...arrayOfValues);
       const min = Math.min(...arrayOfValues);
-      console.log({ min, max });
 
-      return data.map((point: any) => [
-        point[0], // Keep the timestamp
-        (point[1] - min) / (max - min), // Normalize the value
-        point[2], // Keep the label (e.g., "PR-1")
+      return data.map(point => [
+        point[0],
+        (point[1] - min) / (max - min),
+        point[2],
         point[1],
       ]);
-    }
-    let normalizedStaticData: any = [];
-    for (const eachLine of staticLines) {
-      if (eachLine.name != 'Reference Line') {
-        normalizedStaticData.push({
-          ...eachLine,
-          data: normalizeData(eachLine.data),
-        });
-      } else {
-        normalizedStaticData.push(eachLine);
+    };
+
+    const normalizedStaticData = staticLines.map(line => {
+      if (line.name !== 'Reference Line') {
+        return { ...line, data: normalizeData(line.data) };
       }
-    }
-    console.log(normalizedStaticData);
+      return line;
+    });
 
     return {
-      //   tooltip: { trigger: 'axis' },
       tooltip: {
         trigger: 'axis',
-        formatter: function (params: any) {
+        formatter: (params:any) => {
           return params
-            .map((param: any) => {
-              return `${param.seriesName}: ${param.data[3]}<br/>Timestamp: ${new Date(param.data[0]).toLocaleString()}`;
-            })
+            .map((param:any) => `${param.seriesName}: ${param.data[3]}<br/>Timestamp: ${new Date(param.data[0]).toLocaleString()}`)
             .join('<br/>');
         },
       },
       legend: {
         data: [
-          ...staticLines.map((line) => line.name),
-          //   ...dynamicLines.map((line) => line.name),
+          ...staticLines.map(line => line.name),
+          ...dynamicLines.map(line => line.name),
         ],
       },
       xAxis: {
@@ -176,25 +94,22 @@ const DynamicECharts: React.FC = () => {
         min: '2024-09-11T00:00:00Z',
         max: '2024-09-13T00:00:00Z',
         axisLabel: {
-          formatter: (value: any) => {
-            return echarts.format.formatTime('yyyy-MM-dd hh:mm:ss', value);
-          },
+          formatter: (value:any) => echarts.format.formatTime('yyyy-MM-dd hh:mm:ss', value),
         },
       },
       yAxis: {
         show: false,
-        // type: 'value',
-        // name: 'Value',
-        // min: 0,
       },
       series: [
         ...normalizedStaticData,
-        // ...dynamicLines.map((line) => ({
-        //   ...line,
-        //   itemStyle: {
-        //     color: line.selected ? 'blue' : line.lineStyle.color,
-        //   },
-        // })),
+        ...dynamicLines.map(line => ({
+          ...line,
+          lineStyle: {
+            type: selectedLine === line.name ? 'solid' : 'dotted',
+            color: selectedLine === line.name ? 'blue' : line.lineStyle.color,
+            width: selectedLine === line.name ? 4 : 2,
+          },
+        })),
       ],
       dataZoom: [
         {
@@ -213,28 +128,36 @@ const DynamicECharts: React.FC = () => {
     };
   };
 
-  const selectLine = (line: any) => {
-    setDynamicLines((prevLines) =>
-      prevLines.map((l) => {
-        const selected = l.name === line.name ? !l.selected : false; // Toggle the selected state
-        return {
-          ...l,
-          selected,
+  const selectLine = (lineName: string) => {
+    const chartInstance = chartRef.current?.getEchartsInstance();
+    console.log('Pre SelectLIne', getOption());
+    // console.log('Pre ChartInstance', chartInstance?.getOption());
+    setSelectedLine(prevSelected => (prevSelected === lineName ? null : lineName)); // Toggle selection
+    
+
+    // Directly modify the chart's option to avoid re-rendering
+    let newDynamicLInes = [...dynamicLines]
+    if (chartInstance) {
+      chartInstance.setOption({
+        series: newDynamicLInes.map(line => ({
+          name: line.name,
           lineStyle: {
-            type: selected ? 'solid' : 'dotted',
-            color: selected ? 'blue' : l.lineStyle.color,
-            width: selected ? 4 : 2,
+            type: lineName === line.name ? 'solid' : 'dotted',
+            color: lineName === line.name ? 'blue' : line.lineStyle.color,
+            width: lineName === line.name ? 4 : 2,
           },
-        };
-      }),
-    );
+        })),
+      });
+    }
+    console.log('Post SelectLIne', getOption());
+    console.log('Post ChartInstance', chartRef.current?.getEchartsInstance().getOption());
   };
 
   const moveSelectedGroup = (amount: number) => {
-    setDynamicLines((prevLines) =>
-      prevLines.map((line) => {
-        if (line.selected) {
-          const newData = line.data.map(([time, value]: [any, any]) => {
+    setDynamicLines(prevLines =>
+      prevLines.map(line => {
+        if (line.name === selectedLine) {
+          const newData = line.data.map(([time, value]: [string, number]) => {
             const newTime = new Date(time).getTime() + amount;
             return [newTime, value];
           });
@@ -266,40 +189,34 @@ const DynamicECharts: React.FC = () => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [moveAmount, speedFactor]);
+  }, [moveAmount, speedFactor, selectedLine]);
 
   return (
     <div>
-      {/* Take input for static lines */}
-      <div>
-        <button onClick={handleFileSelect}>Select JSON File</button>
-        {staticLines ? (
-          <ReactECharts
-            option={getOption()}
-            style={{ height: '800px', width: '1600px' }}
-            onEvents={{
-              click: (params: any) => {
-                if (params.componentType === 'series') {
-                  selectLine(params.seriesName); // Call selectLine on click
-                }
-              },
-            }}
-          />
-        ) : (
-          <p>Please select a JSON file to load the chart.</p>
-        )}
-      </div>
-     {/* add trace */}
-     <div>
-        
-     </div>
+      <button onClick={handleFileSelect}>Select JSON File</button>
+      {staticLines.length > 0 ? (
+        <ReactECharts 
+          ref={chartRef} 
+          option={getOption()}
+          style={{ height: '800px', width: '1600px' }}
+          onEvents={{
+            click: (params: any) => {
+              if (params.componentType === 'series') {
+                selectLine(params.seriesName);
+              }
+            },
+          }}
+        />
+      ) : (
+        <p>Please select a JSON file to load the chart.</p>
+      )}
       <label htmlFor="speedControl">Movement Speed:</label>
       <input
         type="range"
         id="speedControl"
         min="1"
         max="10"
-        defaultValue={speedFactor}
+        value={speedFactor}
         onChange={(e) => setSpeedFactor(Number(e.target.value))}
       />
     </div>

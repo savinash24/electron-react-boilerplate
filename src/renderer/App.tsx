@@ -1,11 +1,12 @@
 import { Route, MemoryRouter as Router, Routes } from 'react-router-dom';
 import './App.css';
 import Chart from './Chart';
+import NewChart from './OverlayChart'
 
 function Hello() {
   return (
     <div>
-      <Chart />
+      <NewChart />
     </div>
   );
 }
