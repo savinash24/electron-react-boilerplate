@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import React, { useState, useEffect, useRef } from 'react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
@@ -10,9 +11,10 @@ const OverlayCharts: React.FC = () => {
     staticLines: [],
     dynamicLines: [],
     selectedLine: '',
+    speedFactor: 10,
   };
   const [moveAmount, setMoveAmount] = useState(1000000);
-  const [speedFactor, setSpeedFactor] = useState(1);
+  // const [speedFactor, setSpeedFactor] = useState(1);
   // const [selectedLine, setSelectedLine] = useState<string | null>(null);
   // const [staticLines, setStaticLines] = useState<any[]>([]);
   const handleFileSelect = async () => {
@@ -28,18 +30,59 @@ const OverlayCharts: React.FC = () => {
           reader.onload = (e) => {
             const result = e.target?.result as string;
             const parsedData: any[] = JSON.parse(result);
-            // setStaticLines(parsedData);
-            chartObject['staticLines'] = parsedData;
-            // getOption();
-            // console.log(parsedData);
-            console.log(chartObject);
+            chartObject.staticLines = parsedData;
             const chartInstance = chartRef.current?.getEchartsInstance();
             if (chartInstance) {
+              // const normalizedDynamicLines = normalizeData(
+              //   chartObject.dynamicLines,
+              // );
+              // const normalizedStaticLines = normalizeData(
+              //   chartObject.staticLines,
+              // );
+              const normalizedStaticLines = chartObject.staticLines.map(
+                (line: any) => {
+                  if (line.name !== 'Reference Line') {
+                    return { ...line, data: normalizeData(line.data) };
+                  }
+                  return line;
+                },
+              );
+              const normalizedDynamicLines = chartObject.dynamicLines.map(
+                (line: any) => {
+                  if (line.name !== 'Reference Line') {
+                    return { ...line, data: normalizeData(line.data) };
+                  }
+                  return line;
+                },
+              );
+              console.log(
+                normalizedDynamicLines,
+                'normalizedDynamicLines',
+                normalizedStaticLines,
+              );
+
               chartInstance.setOption({
-                series: [
-                  ...chartObject.dynamicLines,
-                  ...chartObject.staticLines,
-                ],
+                tooltip: {
+                  trigger: 'axis',
+                  formatter: (params: any) => {
+                    return params
+                      .map(
+                        (param: any) =>
+                          `${param.seriesName}: ${param.data[3]}<br/>Timestamp: ${new Date(param.data[0]).toLocaleString()}`,
+                      )
+                      .join('<br/>');
+                  },
+                },
+                series: [...normalizedDynamicLines, ...normalizedStaticLines],
+                //   ...chartObject.staticLines,
+                //   ...chartObject.dynamicLines,
+                // ],
+                legend: {
+                  data: [
+                    ...normalizedStaticLines.map((line: any) => line.name),
+                    ...normalizedDynamicLines.map((line: any) => line.name),
+                  ],
+                },
               });
             }
           };
@@ -60,7 +103,7 @@ const OverlayCharts: React.FC = () => {
     chartObject.selectedLine =
       chartObject.selectedLine === lineName ? null : lineName;
     // Directly modify the chart's option to avoid re-rendering
-    let newDynamicLInes = [...chartObject.dynamicLines];
+    const newDynamicLInes = [...chartObject.dynamicLines];
     if (chartInstance) {
       chartInstance.setOption({
         series: newDynamicLInes.map((line) => ({
@@ -86,9 +129,9 @@ const OverlayCharts: React.FC = () => {
         name: 'Dynamic Line 1',
         type: 'line',
         data: [
-          ['2024-09-12T04:51:20.000Z', 24.2],
-          ['2024-09-12T05:51:43.000Z', 22.2],
-          ['2024-09-12T06:51:44.000Z', 26.2],
+          ['2024-09-12T04:51:20.000Z', 24.2, 'PR-2'],
+          ['2024-09-12T05:51:43.000Z', 22.2, 'PR-1'],
+          ['2024-09-12T06:51:44.000Z', 26.2, 'PR-3'],
         ],
         lineStyle: { type: 'dotted', color: 'green', width: 2 },
         selected: false,
@@ -137,9 +180,9 @@ const OverlayCharts: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'ArrowLeft') {
-        moveSelectedGroup(-moveAmount / speedFactor);
+        moveSelectedGroup(-moveAmount / chartObject.speedFactor);
       } else if (event.key === 'ArrowRight') {
-        moveSelectedGroup(moveAmount / speedFactor);
+        moveSelectedGroup(moveAmount / chartObject.speedFactor);
       }
     };
 
@@ -147,37 +190,35 @@ const OverlayCharts: React.FC = () => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [chartObject.selectedLine]);
+  }, [chartObject.selectedLine, moveAmount, chartObject.speedFactor]);
 
+  const normalizeData = (data: number[][]): number[][] => {
+    const arrayOfValues = data.map((point) => point[1]);
+    const max = Math.max(...arrayOfValues);
+    const min = Math.min(...arrayOfValues);
+
+    const modifiedData = data.map((point) => [
+      point[0],
+      (point[1] - min) / (max - min),
+      point[2],
+      point[1],
+    ]);
+    console.log('normalizedData', modifiedData);
+
+    return modifiedData;
+  };
   const getOption = (): EChartOption => {
-    const normalizeData = (data: number[][]): number[][] => {
-      const arrayOfValues = data.map((point) => point[1]);
-      const max = Math.max(...arrayOfValues);
-      const min = Math.min(...arrayOfValues);
-
-      return data.map((point) => [
-        point[0],
-        (point[1] - min) / (max - min),
-        point[2],
-        point[1],
-      ]);
-    };
-
-    const normalizedStaticData = chartObject?.['staticLines'].map(
-      (line: any) => {
-        if (line.name !== 'Reference Line') {
-          return { ...line, data: normalizeData(line.data) };
-        }
-        return line;
-      },
-    );
-    console.log('enterrrr');
+    const normalizedStaticData = chartObject?.staticLines.map((line: any) => {
+      if (line.name !== 'Reference Line') {
+        return { ...line, data: normalizeData(line.data) };
+      }
+      return line;
+    });
+    console.log('enters into getOption');
     return {
       tooltip: {
         trigger: 'axis',
         formatter: (params: any) => {
-          // console.log({params});
-          
           return params
             .map(
               (param: any) =>
@@ -188,8 +229,8 @@ const OverlayCharts: React.FC = () => {
       },
       legend: {
         data: [
-          ...chartObject?.['staticLines'].map((line: any) => line.name),
-          ...chartObject?.['dynamicLines'].map((line: any) => line.name),
+          ...chartObject?.staticLines.map((line: any) => line.name),
+          ...chartObject?.dynamicLines.map((line: any) => line.name),
         ],
       },
       xAxis: {
@@ -207,7 +248,7 @@ const OverlayCharts: React.FC = () => {
       },
       series: [
         ...normalizedStaticData,
-        ...chartObject?.['dynamicLines'].map((line: any) => ({
+        ...chartObject?.dynamicLines.map((line: any) => ({
           ...line,
           lineStyle: {
             type: 'dotted',
@@ -221,7 +262,7 @@ const OverlayCharts: React.FC = () => {
           type: 'inside',
           xAxisIndex: [0],
           start: 0,
-          end: 100,
+          end: 10,
         },
         {
           type: 'slider',
@@ -233,28 +274,64 @@ const OverlayCharts: React.FC = () => {
     };
   };
 
+  // Function to download the current chart state as JSON
+  const handleDownloadJSON = () => {
+    const chartData = {
+      staticLines: chartObject.staticLines,
+      dynamicLines: chartObject.dynamicLines,
+    };
+
+    const jsonStr = JSON.stringify(chartData, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'chart-data.json';
+    a.click();
+
+    URL.revokeObjectURL(url);
+  };
+
+  function setSpeedFactor(arg0: number): any {
+    console.log('LLLL',chartObject.speedFactor, arg0);
+    chartObject.speedFactor = arg0;
+
+    // return 0;
+  }
+
   return (
-    <>
-      <div>
-        <button onClick={handleFileSelect}>Select JSON File</button>
-        {/* {chartObject?.staticLines.length > 0 ? ( */}
-        <ReactECharts
-          ref={chartRef}
-          option={getOption()}
-          style={{ height: '800px', width: '1600px' }}
-          onEvents={{
-            click: (params: any) => {
-              if (params.componentType === 'series') {
-                selectLine(params.seriesName);
-              }
-            },
-          }}
-        />
-        {/* ) : (
+    <div>
+      <button onClick={handleFileSelect}>Select JSON File</button>
+      <button onClick={handleDownloadJSON}>Download JSON</button>
+      {/* {chartObject?.staticLines.length > 0 ? ( */}
+      <ReactECharts
+        ref={chartRef}
+        option={getOption()}
+        style={{ height: '800px', width: '1600px' }}
+        onEvents={{
+          click: (params: any) => {
+            if (params.componentType === 'series') {
+              selectLine(params.seriesName);
+            }
+          },
+        }}
+      />
+      {/* ) : (
           <p>Please select a JSON file to load the chart.</p>
         )} */}
-      </div>
-    </>
+
+      <label htmlFor="speedControl">Movement Speed:</label>
+      <input
+        type="range"
+        id="speedControl"
+        min="1"
+        max="10"
+        value={chartObject.speedFactor}
+        onChange={(e) => setSpeedFactor(Number(e.target.value))}
+      />
+    </div>
   );
+  return <></>;
 };
 export default OverlayCharts;

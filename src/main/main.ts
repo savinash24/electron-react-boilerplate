@@ -15,6 +15,8 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 const fs = require('fs');
+// import { AppDataSource } from './database/connection';
+// import { User } from './database/entities/User.entity';
 
 class AppUpdater {
   constructor() {
@@ -116,6 +118,45 @@ const createWindow = async () => {
 /**
  * Add event listeners...
  */
+app.on('ready', async () => {
+  // Get the path to the user's Documents folder
+  const documentsPath = app.getPath('documents');
+  const folderName = 'Facttwin charts';
+  // Define the path for your app folder
+  const appFolderPath = path.join(documentsPath, folderName);
+  // Check if the folder exists
+  if (!fs.existsSync(appFolderPath)) {
+    // Create the folder if it doesn't exist
+    fs.mkdirSync(appFolderPath);
+    console.log(`Folder created: ${folderName}`, appFolderPath);
+  } else {
+    console.log('Folder already exists:', appFolderPath);
+  }
+  const dbFilePath = path.join(appFolderPath, 'chartsDatabase.db');
+  console.log({ dbFilePath });
+
+  // Check if the database file exists
+  if (!fs.existsSync(dbFilePath)) {
+    // Create a new SQLite database file
+    fs.writeFileSync(dbFilePath, '');
+  } else {
+    console.log('Database already exists:', dbFilePath);
+  }
+
+  // await AppDataSource.initialize().then(async (s) => {
+  //   console.log('testtttt', s);
+  //   const userRepository = AppDataSource.getRepository(User);
+  //   const user = new User();
+  //   user.name = 'Name here';
+  //   user.email = 'test@test.com';
+
+  //   await userRepository.save(user);
+  //   console.log('User has been saved');
+  // });
+  // console.log('Database connected');
+
+  // Migrations here
+});
 
 app.on('window-all-closed', () => {
   // Respect the OSX convention of having the application in memory even
@@ -133,7 +174,7 @@ app.on('window-all-closed', () => {
 ipcMain.handle('select-file', async () => {
   const { filePaths } = await dialog.showOpenDialog({
     properties: ['openFile'],
-    filters: [{ name: 'JSON Files', extensions: ['json'] }]
+    filters: [{ name: 'JSON Files', extensions: ['config', 'json'] }],
   });
 
   if (filePaths && filePaths[0]) {
@@ -146,8 +187,10 @@ ipcMain.handle('select-file', async () => {
 
 app
   .whenReady()
-  .then(() => {
-    createWindow();
+  .then(async () => {
+    console.log('Launching Window');
+
+    await createWindow();
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the
       // dock icon is clicked and there are no other windows open.
