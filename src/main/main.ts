@@ -16,14 +16,20 @@ import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 const fs = require('fs');
 // import knex from 'knex';
-import createKnexConfig from './database/knexConfig'
+import createKnexConfig from './database/knexConfig';
 import constants from './constants';
+const { WIN_ROOT, WIN_SUB_FOLDER, DATABASE_NAME, WIN_PATH } = constants;
+console.log({ WIN_ROOT, DATABASE_NAME, WIN_PATH });
+
 import knex from 'knex';
+// Get the path to the user's Documents folder
+const documentsPath = app.getPath(WIN_ROOT as "documents");
+// Define the path for your app folder
+const appFolderPath = path.join(documentsPath, WIN_SUB_FOLDER);
+const dbFilePath = path.join(appFolderPath, DATABASE_NAME);
 // import Database from 'better-sqlite3';
 // Create the knex configuration with the dynamic file path
-const dbConfig = createKnexConfig(
-  `${constants.WIN_ROOT}/${constants.DATABASE_NAME}`,
-)['production'];
+const dbConfig = createKnexConfig(dbFilePath)['production'];
 
 // Initialize knex with better-sqlite3
 const db = knex(dbConfig);
@@ -140,22 +146,15 @@ const createWindow = async () => {
  * Add event listeners...
  */
 app.on('ready', async () => {
-  // Get the path to the user's Documents folder
-  const documentsPath = app.getPath('documents');
-  const folderName = 'Facttwin charts';
-  // Define the path for your app folder
-  const appFolderPath = path.join(documentsPath, folderName);
+  console.log('PATHS', { appFolderPath, dbFilePath });
   // Check if the folder exists
   if (!fs.existsSync(appFolderPath)) {
     // Create the folder if it doesn't exist
     fs.mkdirSync(appFolderPath);
-    console.log(`Folder created: ${folderName}`, appFolderPath);
+    console.log(`Folder created: ${DATABASE_NAME}`, appFolderPath);
   } else {
     console.log('Folder already exists:', appFolderPath);
   }
-  const dbName = 'chartsDatabase.db';
-  const dbFilePath = path.join(appFolderPath, dbName);
-  console.log({ dbFilePath });
 
   // Check if the database file exists
   if (!fs.existsSync(dbFilePath)) {
@@ -164,28 +163,9 @@ app.on('ready', async () => {
   } else {
     console.log('Database already exists:', dbFilePath);
   }
-  // const db = knex({
-  //   client: 'better-sqlite3',
-  //   connection: {
-  //     filename: dbFilePath, // Adjust the path as needed
-  //   },
-  //   useNullAsDefault: true,
-  // });
-  await initDatabase()
+  // RUN MIGRATIONS
+  await initDatabase();
 
-  // await AppDataSource.initialize().then(async (s) => {
-  //   console.log('testtttt', s);
-  //   const userRepository = AppDataSource.getRepository(User);
-  //   const user = new User();
-  //   user.name = 'Name here';
-  //   user.email = 'test@test.com';
-
-  //   await userRepository.save(user);
-  //   console.log('User has been saved');
-  // });
-  // console.log('Database connected');
-
-  // Migrations here
 });
 
 app.on('window-all-closed', () => {
