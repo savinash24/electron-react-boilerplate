@@ -15,6 +15,29 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 const fs = require('fs');
+// import knex from 'knex';
+import createKnexConfig from './database/knexConfig'
+import constants from './constants';
+import knex from 'knex';
+// import Database from 'better-sqlite3';
+// Create the knex configuration with the dynamic file path
+const dbConfig = createKnexConfig(
+  `${constants.WIN_ROOT}/${constants.DATABASE_NAME}`,
+)['production'];
+
+// Initialize knex with better-sqlite3
+const db = knex(dbConfig);
+async function initDatabase() {
+  await db.schema.hasTable('users').then(async (exists) => {
+    if (!exists) {
+      return db.schema.createTable('users', (table) => {
+        table.increments('id').primary();
+        table.string('name');
+        table.string('email').unique();
+      });
+    }
+  });
+}
 
 class AppUpdater {
   constructor() {
@@ -130,7 +153,8 @@ app.on('ready', async () => {
   } else {
     console.log('Folder already exists:', appFolderPath);
   }
-  const dbFilePath = path.join(appFolderPath, 'chartsDatabase.db');
+  const dbName = 'chartsDatabase.db';
+  const dbFilePath = path.join(appFolderPath, dbName);
   console.log({ dbFilePath });
 
   // Check if the database file exists
@@ -140,6 +164,14 @@ app.on('ready', async () => {
   } else {
     console.log('Database already exists:', dbFilePath);
   }
+  // const db = knex({
+  //   client: 'better-sqlite3',
+  //   connection: {
+  //     filename: dbFilePath, // Adjust the path as needed
+  //   },
+  //   useNullAsDefault: true,
+  // });
+  await initDatabase()
 
   // await AppDataSource.initialize().then(async (s) => {
   //   console.log('testtttt', s);
