@@ -186,7 +186,20 @@ ipcMain.handle('select-file', async () => {
 
   return null;
 });
-
+// ------------
+ipcMain.on('main-f1', (event, arg) => {
+  console.log('Received from renderer:', arg);
+  event.sender.send('reply-f1', 'Reply from main to communication component');
+});
+// -------------
+ipcMain.on('main-f2', (event, arg) => {
+  console.log('called from renderer:', arg);
+  event.sender.send(
+    'reply-f2',
+    arg.map((e: any) => e + 1),
+  );
+});
+// ---------------
 app
   .whenReady()
   .then(async () => {

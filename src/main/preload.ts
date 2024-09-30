@@ -29,5 +29,10 @@ contextBridge.exposeInMainWorld('electron', electronHandler);
 export type ElectronHandler = typeof electronHandler;
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  selectFile: () => ipcRenderer.invoke('select-file')
+  selectFile: () => ipcRenderer.invoke('select-file'),
+  getData: (data: any) => ipcRenderer.send('main-f1', data),
+  arrayCompute: (data: any) => ipcRenderer.send('main-f2', data),
+  onReply: (channel: string, callback: (event: any, ...args: any[]) => void) => {
+    ipcRenderer.on(channel, callback);
+  },
 });

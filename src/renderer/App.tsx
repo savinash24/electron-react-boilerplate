@@ -1,12 +1,13 @@
 import { Route, MemoryRouter as Router, Routes } from 'react-router-dom';
 import './App.css';
 // import Chart from './Chart';
-import NewChart from './OverlayChart'
-import Chart307 from './Chart307';
+// import NewChart from './OverlayChart'
+// import Chart307 from './Chart307';
+import Communication from './Communication';
 function Hello() {
   return (
     <div>
-      <NewChart />
+      <Communication />
     </div>
   );
 }
