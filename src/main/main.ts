@@ -22,27 +22,40 @@ const { WIN_ROOT, WIN_SUB_FOLDER, DATABASE_NAME, WIN_PATH } = constants;
 console.log({ WIN_ROOT, DATABASE_NAME, WIN_PATH });
 
 import knex from 'knex';
+const RESOURCES_PATH = app.isPackaged
+  ? path.join(process.resourcesPath, 'assets')
+  : path.join(__dirname, '../../assets');
+console.log({ RESOURCES_PATH });
 // Get the path to the user's Documents folder
-const documentsPath = app.getPath(WIN_ROOT as "documents");
+const documentsPath = app.getPath(WIN_ROOT as 'documents');
 // Define the path for your app folder
 const appFolderPath = path.join(documentsPath, WIN_SUB_FOLDER);
 const dbFilePath = path.join(appFolderPath, DATABASE_NAME);
+const migrationPath = RESOURCES_PATH + '/migrations';
 // import Database from 'better-sqlite3';
 // Create the knex configuration with the dynamic file path
-const dbConfig = createKnexConfig(dbFilePath)['production'];
+const dbConfig = createKnexConfig(dbFilePath, migrationPath)['production'];
 
 // Initialize knex with better-sqlite3
 const db = knex(dbConfig);
-async function initDatabase() {
-  await db.schema.hasTable('users').then(async (exists) => {
-    if (!exists) {
-      return db.schema.createTable('users', (table) => {
-        table.increments('id').primary();
-        table.string('name');
-        table.string('email').unique();
-      });
-    }
-  });
+// async function runMigrations() {
+//   await db.schema.hasTable('users').then(async (exists) => {
+//     if (!exists) {
+//       return db.schema.createTable('users', (table) => {
+//         table.increments('id').primary();
+//         table.string('name');
+//         table.string('email').unique();
+//       });
+//     }
+//   });
+// }
+async function runMigrations() {
+  try {
+    await db.migrate.latest();
+    console.log('Migrations have been run successfully.');
+  } catch (err) {
+    console.error('Error running migrations:', err);
+  }
 }
 
 class AppUpdater {
@@ -90,10 +103,6 @@ const createWindow = async () => {
   if (isDebug) {
     await installExtensions();
   }
-
-  const RESOURCES_PATH = app.isPackaged
-    ? path.join(process.resourcesPath, 'assets')
-    : path.join(__dirname, '../../assets');
 
   const getAssetPath = (...paths: string[]): string => {
     return path.join(RESOURCES_PATH, ...paths);
@@ -164,8 +173,7 @@ app.on('ready', async () => {
     console.log('Database already exists:', dbFilePath);
   }
   // RUN MIGRATIONS
-  await initDatabase();
-
+  await runMigrations();
 });
 
 app.on('window-all-closed', () => {
